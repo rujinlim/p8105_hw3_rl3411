@@ -1,0 +1,6 @@
+---
+title: "p8105_hw3_rl3411"
+author: "rl3411"
+date: "2023-10-13"
+output: github_document
+---
