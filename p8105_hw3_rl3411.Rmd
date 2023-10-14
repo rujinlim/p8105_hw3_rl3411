@@ -40,7 +40,85 @@ instacart =
   as_tibble()
 ```
 
-In the instacart dataset, there are `r nrow(instacart)` rows and `r ncol(instacart)` columns. 
+### Understanding the structure of `instacart`
+
+In the `instacart` dataset, there are `r nrow(instacart)` rows and `r ncol(instacart)` columns. Each row corresponds to each item purchased within each order. The variables found in the dataset are:
+
+ID group variables:
+
+1. `order_id`: order identification number
+2. `product_id`: product identification number
+3. `user_id`: customer identification number
+4. `aisle_id`: aisle identification number
+5. `department_id`: department identification number
+
+Product group variables:
+
+6. `product_name`: name of the product
+7. `aisle`: the aisle name of where the product is
+8. `department`: which department the product belongs to
+
+Order group variables:
+
+9. `add_to_cart_order`: order in which each product was added to cart
+10. `reordered`: 1 if this product has been ordered by this user in the past, 0 otherwise
+11. `order_number`: the order sequence number for this user (1=first, n=nth)
+12. `order_dow`: the day of the week on which the order was placed
+13. `order_hour_of_day`: the hour of the day on which the order was placed
+14. `days_since_prior_order`: days since the last order, capped at 30, NA if `order_number=1`
+15. `eval_set`: which evaluation set this order belongs in (train in this case)
+
+Overall, there are `r length(table(pull(instacart, product_id)))` products from the `r length(table(pull(instacart, order_id)))` orders, purchased by `length(table(pull(instacart, used_id)))`. To get a sense of how this instacart warehouse looks like, we find that there are `r length(table(pull(instacart, department_id)))` departments and `r length(table(pull(instacart, aisle_id)))` aisles.
+
+### Closer look into `instacart`
+
+As aforementioned, there are `r length(table(pull(instacart, aisle_id)))` aisles. Among these aisles, fresh fruits and fresh fruits are two aisles with the most items ordered. This can be seen in the table below. 
+
+```{r}
+instacart |> 
+  count(aisle) |> 
+  arrange(desc(n))
+```
+
+Let us first look into the most and least popular aisles. 
+
+```{r}
+instacart |> 
+  count(aisle) |>
+  mutate(aisle = fct_reorder(aisle, n)) |> 
+  filter(n > 10000) |> 
+  ggplot(aes(x = aisle, y = n)) + 
+  geom_point() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(title = "Aisles with most orders") + 
+  ylab("number of items ordered")
+```
+
+Now, let's look into three of the most popular items in aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. In this table, `n` describes the number of times these products have been ordered. Packaged vegetables fruits seem to be the most popular among these three aisles, followed by baking ingredients and dog food care. Among packaged vegetables fruits, organic products seem to be popular, although this is on the assumption that the products provided in that aisle are a good mix between regular and organic items.
+
+```{r}
+instacart |> 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) |>
+  group_by(aisle) |> 
+  count(product_name) |> 
+  mutate(rank = min_rank(desc(n))) |> 
+  filter(rank < 4) |> 
+  arrange(desc(n)) |>
+  knitr::kable()
+```
+
+Lastly, let us know look at the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. Generally, we can see that Pink Lady apples are usually ordered around noon or early afternoon, whereas coffee ice cream is ordered later in the afternoon. This pattern holds true on all days of the week, except on Saturdays (or day 5).
+
+```{r}
+instacart |>
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) |>
+  group_by(product_name, order_dow) |>
+  summarize(mean_hour = mean(order_hour_of_day)) |>
+  pivot_wider(
+    names_from = order_dow, 
+    values_from = mean_hour) |>
+  knitr::kable(digits = 2)
+```
 
 # Problem 2
 
@@ -118,6 +196,122 @@ p2c_dataset |>
   geom_point(aes(color = county)) + 
   facet_grid(. ~ year)
 ```
+
+# Problem 3
+
+### Load, clean and merge dataset
+
+```{r}
+accel_df = 
+  read_csv("data/nhanes_accel.csv") |> 
+  janitor::clean_names() |> 
+  mutate(seqn = as.numeric(seqn)) |> 
+  mutate_if(is.double, as.numeric)
+
+demo_df = 
+  read_csv("data/nhanes_covar.csv") |> 
+  janitor::row_to_names(row_number = 4) |>  # replace variable names
+  janitor::clean_names() |>
+  mutate(
+    sex = case_match( 
+      sex,
+      "1" ~ "male",
+      "2" ~ "female"
+    ),
+    education = case_match(
+      education,
+      "1" ~ "less than high school",
+      "2" ~ "high school equivalent",
+      "3" ~ "more than high school"
+      ),
+    age = as.numeric(age),
+    bmi = as.numeric(bmi),
+    seqn = as.numeric(seqn)
+    ) |> 
+  filter(age >= 21) |> 
+  na.omit()
+
+mims_df = 
+  inner_join(demo_df, accel_df, by = "seqn") |> 
+  arrange(age, bmi)
+```
+
+### Number of men and women in each education category
+
+```{r}
+mims_df |> 
+  count(sex, education) |> 
+  pivot_wider(
+    names_from = education,
+    values_from = n 
+  ) |>
+  relocate("less than high school", .after = "sex") |> 
+  knitr::kable(digits = 2)
+```
+
+
+```{r}
+mims_df |> 
+  ggplot(aes(x = factor(education, 
+                        levels = c("less than high school", 
+                                   "high school equivalent", 
+                                   "more than high school")), 
+             y = age, fill = sex)) +
+  geom_boxplot() +  
+  xlab("Education level") + ylab("Age") 
+```
+
+Comment!!!!!
+
+```{r, message = F}
+mims_total_act = mims_df |> 
+  mutate(total_activity = rowSums(across(min1:min1440))) |> 
+  relocate(total_activity, .before = min1) 
+  
+mims_total_act |> 
+  ggplot(aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = 0.5, size = 0.5) +
+  geom_smooth(aes(fill = sex)) +
+  facet_grid(. ~ factor(education, levels = c("less than high school", 
+                                              "high school equivalent", 
+                                              "more than high school"))) +
+  scale_color_viridis_d(option = "H") +
+  scale_fill_viridis_d(option = "H") + 
+  ylab("Total activity") + xlab("Age")
+```
+
+Comment!!!!!
+
+```{r}
+timecourse = 
+  mims_df |> 
+  pivot_longer(
+    min1:min1440,
+    names_to = "minute_of_the_day",
+    values_to = "activity"
+  ) |> 
+  mutate(minute_of_the_day = str_sub(minute_of_the_day, 4, -1))
+
+timecourse |> 
+  ggplot(aes(x = minute_of_the_day, y = activity, color = sex)) + 
+  geom_point(alpha = 0.1, size = 0.1) + 
+  geom_smooth() +
+  facet_grid(factor(education, levels = c("less than high school", 
+                                          "high school equivalent", 
+                                          "more than high school"))~.) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
