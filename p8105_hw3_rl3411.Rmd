@@ -68,7 +68,7 @@ Order group variables:
 14. `days_since_prior_order`: days since the last order, capped at 30, NA if `order_number=1`
 15. `eval_set`: which evaluation set this order belongs in (train in this case)
 
-Overall, there are `r length(table(pull(instacart, product_id)))` products from the `r length(table(pull(instacart, order_id)))` orders, purchased by `length(table(pull(instacart, used_id)))`. To get a sense of how this instacart warehouse looks like, we find that there are `r length(table(pull(instacart, department_id)))` departments and `r length(table(pull(instacart, aisle_id)))` aisles.
+Overall, there are `r length(table(pull(instacart, product_id)))` products from the `r length(table(pull(instacart, order_id)))` orders, purchased by `r length(table(pull(instacart, user_id)))`. To get a sense of how this instacart warehouse looks like, we find that there are `r length(table(pull(instacart, department_id)))` departments and `r length(table(pull(instacart, aisle_id)))` aisles.
 
 ### Closer look into `instacart`
 
@@ -109,7 +109,7 @@ instacart |>
 
 Lastly, let us know look at the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. Generally, we can see that Pink Lady apples are usually ordered around noon or early afternoon, whereas coffee ice cream is ordered later in the afternoon. This pattern holds true on all days of the week, except on Saturdays (or day 5).
 
-```{r}
+```{r, message = F}
 instacart |>
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) |>
   group_by(product_name, order_dow) |>
@@ -142,6 +142,8 @@ brfss_df =
 overall_health_df =
   filter(brfss_df, topic == "Overall Health") |> 
   arrange(factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent")))
+
+overall_health_df
 ```
 
 ### 2002 vs. 2010: States observing at 7 or more locations
@@ -163,7 +165,7 @@ compare1 = anti_join(locate7_2002, locate7_2010, by = "state") # all states in 2
 compare2 = anti_join(locate7_2010, locate7_2002, by = "state") # states in 2010 but not in 2002
 ```
 
-In 2002, 13 states observed at 7 or more locations, which were `r pull(locate7_2002, state)`. These states continued observing at 7 or more locations in 2010, and 9 states also started observing at 7 or more locations that year, which are `r pull(compare2, state)`. 
+In 2002, `r length(pull(locate7_2002, state))` states observed at 7 or more locations, which were `r pull(locate7_2002, state)`. These states continued observing at 7 or more locations in 2010, and `r length(pull(compare2, state))` other states also started observing at 7 or more locations that year, which are `r pull(compare2, state)`. 
 
 ### Spaghetti plot
 
@@ -201,7 +203,7 @@ p2c_dataset |>
 
 ### Load, clean and merge dataset
 
-```{r}
+```{r, message = F}
 accel_df = 
   read_csv("data/nhanes_accel.csv") |> 
   janitor::clean_names() |> 
@@ -282,7 +284,7 @@ mims_total_act |>
 
 Comment!!!!!
 
-```{r}
+```{r, message = F}
 timecourse = 
   mims_df |> 
   pivot_longer(
