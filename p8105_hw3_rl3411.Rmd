@@ -136,7 +136,7 @@ brfss_df =
          county = locationdesc) 
 ```
 
-### Looking into the "Overall Health" topic
+### Creating dataset for "Overall Health" topic
 
 ```{r}
 overall_health_df =
@@ -177,9 +177,13 @@ exc_resp = overall_health_df |>
   summarize(mean = mean(data_value, na.rm=T)) 
 
 exc_resp |> 
-  ggplot(aes(x = year, y = mean, color = (group = state))) + 
-  geom_line()
+  ggplot(aes(x = year, y = mean)) + 
+  geom_line(aes(color = (group = state))) + 
+  geom_smooth(se = F) + 
+  labs(title = "Mean of data values over time (excellent health status group)")
 ```
+
+From the spaghetti plot above, we see that most of the states have overlapping average values over time for those that responded "excellent" to their general health status. By looking at the thicker smooth blue curve across the center of the plot, there seems to be a slight downward trend from 2002 to 2010 across all states, though the overlaps between each "spaghetti" makes the plot messy and difficult to follow through each state. 
 
 ### 2006 vs. 2010: Distribution of data for responses in NY
 
@@ -196,8 +200,11 @@ p2c_dataset |>
   theme(axis.text.x = element_text(size = 8)) +
   geom_boxplot(color = "grey", alpha = 0.5) +
   geom_point(aes(color = county)) + 
-  facet_grid(. ~ year)
+  facet_grid(. ~ year) + 
+  labs(title = "2006 vs. 2010: Distribution of data for responses in NY")
 ```
+
+Among locations in NY State in both 2006 and 2010, the distribution of data values seem to increase from "poor" to "very good", then taking a dip in the "excellent" response group. For those who responded "poor", the data value distributions in both years have a small/tight interval and most counties averaged below 5 in this response group. On the other hand, the response groups "good" and "very good" seem to be the highest in both years. In 2006, the distribution of data values seem to be similar between "good" and "very good" but in 2010, the data values for "very good" was apparently higher than those who responded "good".
 
 # Problem 3
 
@@ -238,7 +245,7 @@ mims_df =
   arrange(age, bmi)
 ```
 
-### Number of men and women in each education category
+### Comparison of men and women in each education category
 
 ```{r}
 mims_df |> 
@@ -260,10 +267,11 @@ mims_df |>
                                    "more than high school")), 
              y = age, fill = sex)) +
   geom_boxplot() +  
-  xlab("Education level") + ylab("Age") 
+  xlab("Education level") + ylab("Age") +
+  labs(title = "Age distribution of men and women in each education category")
 ```
 
-Comment!!!!!
+From the contingency table, we can deduce that most participants have an education level of more than high school. This education group corresponds a lower age distribution in the plot. For those who received an education of less than high school, their age distribution was higher, with an increased median of approximately 20 years as compared to those who had higher level of education. While the numbers between men and women were roughly equal in the "less than high school" and "more than high school" groups, there were 13 more men than women in the group who did high school and equivalent, and men were generally younger than women in this group.
 
 ```{r, message = F}
 mims_total_act = mims_df |> 
@@ -279,10 +287,11 @@ mims_total_act |>
                                               "more than high school"))) +
   scale_color_viridis_d(option = "H") +
   scale_fill_viridis_d(option = "H") + 
-  ylab("Total activity") + xlab("Age")
+  ylab("Total activity") + xlab("Age") + 
+  labs(title = "Total activity levels for men and women of all ages in each education category")
 ```
 
-Comment!!!!!
+Across all three education levels, there is a downward trend of total activity as age increases. This is reasonable as we would expect people to be less active as they grow older. All the curves end between the range of 8000 and 10000 for both men and women at the age of 80, suggesting that the activity levels do not differ between gender for older populations. For those who received the high school equivalent or more than high school, we see that women generally have higher activity levels than men, especially when comparing middle-aged women to men who received "high school equivalent". On the contrary, for those who received "less than high school" education, women are more active than men between 20 to 40 years old, but were less active after the age of 40 as compared to men. Overall, the younger females who received "less than high school" education seem to have the highest level of total activity compared to all other population groups.
 
 ```{r, message = F}
 timecourse = 
@@ -292,7 +301,9 @@ timecourse =
     names_to = "minute_of_the_day",
     values_to = "activity"
   ) |> 
-  mutate(minute_of_the_day = str_sub(minute_of_the_day, 4, -1))
+  mutate(minute_of_the_day = str_sub(minute_of_the_day, 4, -1),
+         minute_of_the_day = as.numeric(minute_of_the_day)) |> 
+  filter(activity < 50)
 
 timecourse |> 
   ggplot(aes(x = minute_of_the_day, y = activity, color = sex)) + 
@@ -300,27 +311,11 @@ timecourse |>
   geom_smooth() +
   facet_grid(factor(education, levels = c("less than high school", 
                                           "high school equivalent", 
-                                          "more than high school"))~.) 
+                                          "more than high school"))~.) +
+  scale_x_continuous(breaks = c(0, 250, 500, 750, 1000, 1250, 1500)) +
+  xlab("minute of the day") + 
+  labs(title = "Activity levels for men and women in each education category across a 24-hour period")
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Judging by the yellow and purple smooth curves, across all three levels of education, activity levels start to increase at the 375th minute of the day, which corresponds to around 6 o'clock in the morning, then maintain somewhat constant at an average of 12.5 MIMS-units until around 7pm then continues to decrease until midnight. During daytime, women tend to be more active than men, especially those in the "more than high school" education group. As the day passes, we can see that men start to have higher activity levels than women during the night. Lastly, the clusters on the bottom right corner of each plot suggest that people start to rest around 9pm at night in all three groups, assuming that everyone keeps their accelerometers on throughout the 24-hour period. 
 
